@@ -19,8 +19,9 @@ import time
 from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StructType, StructField, StringType
 from pyspark.ml.feature import Tokenizer, CountVectorizer, IDF
-from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
+from logistic_regression import create_log_reg_model, evaluate_log_reg_model
+import data_vis
+import data_cleaning
 
 # Create Spark Session
 spark = SparkSession.builder \
@@ -45,7 +46,8 @@ Substeps:
     - Read in data
     - Remove year column
     - Clean data
-    - Split data
+    - Split data (triain and test, train -> train and validation)
+    - Normalize AIR_TIME, DISTANCE
 '''
 
 end_time = time.perf_counter()
@@ -95,20 +97,12 @@ print(f'One Hot Encoding: {elapsed:.4f} seconds')
 start_time = time.perf_counter()
 print('Starting Step 4: Logistic Regression Model')
 
-# Select Features
+# Remove Extra Features
 
+# PCA
 
 # Create model
-lr = LogisticRegression(
-    featuresCol = 'features',
-    labelCol = 'label',
-    regParam = 0.5,
-    elasticNetParam = 0.0,
-    maxIter = 100,
-    tol = 1e-6
-)
-
-model = lr.fit(train_df)
+model = create_log_reg_model(train_df)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time
@@ -119,26 +113,7 @@ print(f'Logistic Regression Model: {elapsed:.4f} seconds')
 start_time = time.perf_counter()
 print('Starting Step 5: Evaluate Model')
 
-predictions = model.transform(test_df)
-
-evaluator_f1 = MulticlassClassificationEvaluator(
-    labelCol = 'label',
-    predictionCol = 'prediction',
-    metricName = 'f1',
-    metricLabel = 1.0
-)
-
-evaluator_roc = BinaryClassificationEvaluator(
-    labelCol = 'label', 
-    rawPredictionCol = 'probability',
-    metricName = 'areaUnderROC'
-)
-
-f1 = evaluator_f1.evaluate(predictions)
-auc_roc = evaluator_roc.evaluate(predictions)
-
-print(f'F1 score: {f1}')
-print(f'AUC_ROC: {auc_roc}')
+predictions = evaluate_log_reg_model(test_df, model)
 
 '''
 Metrics:

@@ -4,6 +4,10 @@
 @author: 
 @author: 
 @author: katherine_rein
+
+Features: MONTH, DAY_OF_MONTH, DAY_OF_WEEK, OP_UNIQUE_CARRIER, ORIGIN_AIRPORT_ID,
+DEST_AIRPORT_ID, AIR_TIME, DISTANCE
+
 """
 
 # %% Prep Workspace
@@ -39,6 +43,7 @@ print('Starting Step 1: Prep Data')
 '''
 Substeps:
     - Read in data
+    - Remove year column
     - Clean data
     - Split data
 '''
@@ -90,6 +95,10 @@ print(f'One Hot Encoding: {elapsed:.4f} seconds')
 start_time = time.perf_counter()
 print('Starting Step 4: Logistic Regression Model')
 
+# Select Features
+
+
+# Create model
 lr = LogisticRegression(
     featuresCol = 'features',
     labelCol = 'label',

@@ -19,9 +19,9 @@ import time
 from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StructType, StructField, StringType
 from pyspark.ml.feature import Tokenizer, CountVectorizer, IDF
-from logistic_regression import create_log_reg_model, evaluate_log_reg_model
+from logistic_regression import create_log_reg_model, evaluate_log_reg_model, split_data
 import data_vis
-import data_cleaning
+from data_cleaning import cleaning_flight_data, feature_eng
 
 # Create Spark Session
 spark = SparkSession.builder \
@@ -35,29 +35,27 @@ sc = spark.sparkContext
 sc.setLogLevel("WARN")
 print('\n' * 5)
 
+### SET WITH ACCURATE FILENAME FOR RUNNING ON YOUR OWN MACHINE
+filename = '/Users/katherineanne/Desktop/College/Grad/2026 Spring/CS 777/Term Project/T_ONTIME_REPORTING - T_ONTIME_REPORTING.csv'
+
 
 # %% Step 1: Prep data
 
 start_time = time.perf_counter()
 print('Starting Step 1: Prep Data')
 
-'''
-Substeps:
-    - Read in data
-    - Remove year column
-    - Clean data
-    - Split data (triain and test, train -> train and validation)
-    - Normalize AIR_TIME, DISTANCE
-'''
+#loading the dataset
+df = spark.read.csv(filename, header= True, inferSchema=True)
+#df.show(5)
+
+#clean data
+df = cleaning_flight_data(df)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time
 print(f'Prepped Data: {elapsed:.4f} seconds')
 
 # %% Step 2: Data Visualization
-
-start_time = time.perf_counter()
-print('Starting Step 2: Data Visualization')
 
 '''
 Options:
@@ -70,14 +68,15 @@ Options:
     - Bar Chart: Delay Count by Destination Airport/State
 '''
 
+start_time = time.perf_counter()
+print('Starting Step 2: Data Visualization')
+
+
 end_time = time.perf_counter()
 elapsed = end_time - start_time
 print(f'Data Visualization: {elapsed:.4f} seconds')
 
-# %% Step 3: One Hot Encoding
-
-start_time = time.perf_counter()
-print('Starting Step 3: One Hot Encoding')
+# %% Step 3: One Hot Encoding/Scaling
 
 '''
 Features to Encode:
@@ -88,21 +87,30 @@ Features to Encode:
     - DEST_STATE_ABR
 '''
 
+start_time = time.perf_counter()
+print('Starting Step 3: One Hot Encoding and Scaling')
+
+# Split data up
+train_df, test_df, val_df = split_data(df)
+
+# Clean and scale data
+feature_pipeline = feature_eng()
+fitted_pipeline = feature_pipeline.fit(train_df)
+
 end_time = time.perf_counter()
 elapsed = end_time - start_time
-print(f'One Hot Encoding: {elapsed:.4f} seconds')
+print(f'One Hot Encoding and Scaling: {elapsed:.4f} seconds')
 
 # %% Step 4: Logistic Regression Model
 
 start_time = time.perf_counter()
 print('Starting Step 4: Logistic Regression Model')
 
-# Remove Extra Features
-
-# PCA
+# Transform features
+train_features = fitted_pipeline.transform(train_df)
 
 # Create model
-model = create_log_reg_model(train_df)
+model = create_log_reg_model(train_features)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time
@@ -110,16 +118,20 @@ print(f'Logistic Regression Model: {elapsed:.4f} seconds')
 
 # %% Step 5: Evaluate Model
 
-start_time = time.perf_counter()
-print('Starting Step 5: Evaluate Model')
-
-predictions = evaluate_log_reg_model(test_df, model)
-
 '''
 Metrics:
     - F1 Score
     - AUC-ROC
 '''
+
+start_time = time.perf_counter()
+print('Starting Step 5: Evaluate Model')
+
+# Transform testing data
+test_features = fitted_pipeline.transform(test_df)
+
+# Get predictions
+predictions = evaluate_log_reg_model(test_features, model)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time

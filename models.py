@@ -82,7 +82,7 @@ def kfold_cross_log_reg(val_df, train_df):
     for param, value in best_params.items():
         lr_final.set(param, value)
         
-    final_model = lr.fit(train_df)
+    final_model = lr_final.fit(train_df)
 
     return final_model
 
@@ -96,6 +96,3 @@ def xgboost(train_df):
     model = regressor.fit(train_df)
     
     return model
-
-    
-    

@@ -3,7 +3,7 @@
 
 from pyspark.sql import SparkSession
 import time
-from logistic_regression import create_log_reg_model, split_data
+from models import create_log_reg_model, split_data
 from data_cleaning import feature_eng, cleaning_flight_data
 from evaluation import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
 

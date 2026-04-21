@@ -3,7 +3,7 @@
 
 from pyspark.sql import SparkSession
 import time
-from models import create_log_reg_model, split_data
+from models import create_log_reg_model, split_data, kfold_cross_log_reg, xgboost
 from data_cleaning import feature_eng, cleaning_flight_data
 from evaluation import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
 
@@ -60,7 +60,7 @@ end_time = time.perf_counter()
 elapsed = end_time - start_time
 print(f'One Hot Encoding and Scaling: {elapsed:.4f} seconds')
 
-# %% Step 4: Logistic Regression Model
+# %% Step 4: Basic Logistic Regression Model
 start_time = time.perf_counter()
 print('Starting Step 4: Logistic Regression Model')
 
@@ -81,9 +81,6 @@ print('Starting Step 5: Evaluate Model')
 # Transform testing data
 test_features = fitted_pipeline.transform(test_df)
 
-# Transform validation data
-val_features = fitted_pipeline.transform(val_df)
-
 # Test predictions
 predictions = model.transform(test_features)
 
@@ -92,15 +89,48 @@ evaluate_predictions(predictions)
 confusion_matrix_counts(predictions)
 evaluate_baseline(test_features)
 
-# Validation predictions
-val_predictions = model.transform(val_features)
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'Evaluate Model: {elapsed:.4f} seconds')
 
-print("Validation Metrics:")
+# %% Step 6: K-Fold Cross Validation
+start_time = time.perf_counter()
+print('Starting Step 6: K-Fold Cross Validation')
+
+# Transform validation data
+val_features = fitted_pipeline.transform(val_df)
+
+# K-Fold Model
+kfold_cross_model = kfold_cross_log_reg(val_df, train_df)
+
+# Validation predictions
+val_predictions = kfold_cross_model.transform(val_features)
+
+print("K Fold Cross Validation Metrics:")
 evaluate_predictions(val_predictions)
 confusion_matrix_counts(val_predictions)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time
-print(f'Evaluate Model: {elapsed:.4f} seconds')
+print(f'K-Fold Cross Validation Model: {elapsed:.4f} seconds')
+
+# %% Step 7: XGBoost
+start_time = time.perf_counter()
+print('Starting Step 7: XGBoost')
+
+# XGBoost Model
+xgboost_model = xgboost(train_df)
+
+# XGBoost predictions
+xgboost_predictions = model.transform(test_features)
+
+print("XGBoost Metrics:")
+evaluate_predictions(xgboost_predictions)
+confusion_matrix_counts(xgboost_predictions)
+evaluate_baseline(test_features)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'XGBoost: {elapsed:.4f} seconds')
 
 spark.stop()

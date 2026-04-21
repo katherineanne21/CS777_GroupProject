@@ -6,7 +6,7 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 
 def evaluate_predictions(predictions):
-#accuracy
+    # accuracy
     evaluator_acc = MulticlassClassificationEvaluator(
         labelCol="DEP_DEL15",
         predictionCol="prediction",
@@ -14,7 +14,7 @@ def evaluate_predictions(predictions):
     )
     accuracy = evaluator_acc.evaluate(predictions)
 
-#precision
+    # precision
     evaluator_precision = MulticlassClassificationEvaluator(
         labelCol="DEP_DEL15",
         predictionCol="prediction",
@@ -22,7 +22,7 @@ def evaluate_predictions(predictions):
     )
     precision = evaluator_precision.evaluate(predictions)
 
-#recall
+    # recall
     evaluator_recall = MulticlassClassificationEvaluator(
         labelCol="DEP_DEL15",
         predictionCol="prediction",
@@ -30,7 +30,7 @@ def evaluate_predictions(predictions):
     )
     recall = evaluator_recall.evaluate(predictions)
 
-#F1
+    # F1
     evaluator_f1 = MulticlassClassificationEvaluator(
         labelCol="DEP_DEL15",
         predictionCol="prediction",
@@ -58,15 +58,12 @@ def confusion_matrix_counts(predictions):
 
 
 def evaluate_baseline(test_df):
-  #baseline model: always predict on-time (0)
+    # baseline model: always predict on-time (0)
     baseline_predictions = test_df.withColumn(
         "prediction",
         when(col("DEP_DEL15").isNotNull(), 0.0)
     )
 
-    metrics = evaluate_predictions(baseline_predictions)
-    cm = confusion_matrix_counts(baseline_predictions)
-    
     print("\nBaseline Model Results (always predict on-time):")
-    print("Baseline metrics:", metrics)
-    print("Baseline confusion matrix:", cm)
+    evaluate_predictions(baseline_predictions)
+    confusion_matrix_counts(baseline_predictions)

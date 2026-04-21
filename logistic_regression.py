@@ -3,7 +3,6 @@
 
 # Import modules
 from pyspark.ml.classification import LogisticRegression
-from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
 
 def split_data(df):
     #splitting the data (Train,Test , Validation)
@@ -27,31 +26,6 @@ def create_log_reg_model(train_df):
     model = lr.fit(train_df)
     
     return model
-
-def evaluate_log_reg_model(test_df, model):
-    
-    predictions = model.transform(test_df)
-
-    evaluator_f1 = MulticlassClassificationEvaluator(
-        labelCol = 'DEP_DEL15',
-        predictionCol = 'prediction',
-        metricName = 'f1',
-        metricLabel = 1.0 # 1 = yes delayed
-    )
-
-    evaluator_roc = BinaryClassificationEvaluator(
-        labelCol = 'DEP_DEL15', 
-        rawPredictionCol = 'probability',
-        metricName = 'areaUnderROC'
-    )
-
-    f1 = evaluator_f1.evaluate(predictions)
-    auc_roc = evaluator_roc.evaluate(predictions)
-    
-    print(f'F1 score: {f1}')
-    print(f'AUC_ROC: {auc_roc}')
-    
-    return predictions
     
     
     

@@ -43,13 +43,6 @@ def evaluate_predictions(predictions):
     print(f"Recall: {recall:.4f}")
     print(f"F1 Score: {f1:.4f}")
 
-    return {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1
-    }
-
 
 def confusion_matrix_counts(predictions):
     tp = predictions.filter((col("DEP_DEL15") == 1) & (col("prediction") == 1)).count()
@@ -57,18 +50,11 @@ def confusion_matrix_counts(predictions):
     fp = predictions.filter((col("DEP_DEL15") == 0) & (col("prediction") == 1)).count()
     fn = predictions.filter((col("DEP_DEL15") == 1) & (col("prediction") == 0)).count()
 
-    print("\nConfusion Matrix:")
+    print("\nConfusion Matrix Counts:")
     print(f"TP: {tp}")
     print(f"TN: {tn}")
     print(f"FP: {fp}")
     print(f"FN: {fn}")
-
-    return {
-        "TP": tp,
-        "TN": tn,
-        "FP": fp,
-        "FN": fn
-    }
 
 
 def evaluate_baseline(test_df):
@@ -78,8 +64,9 @@ def evaluate_baseline(test_df):
         when(col("DEP_DEL15").isNotNull(), 0.0)
     )
 
-    print("\nBaseline Model Results (always predict on-time):")
     metrics = evaluate_predictions(baseline_predictions)
     cm = confusion_matrix_counts(baseline_predictions)
-
-    return baseline_predictions, metrics, cm
+    
+    print("\nBaseline Model Results (always predict on-time):")
+    print("Baseline metrics:", metrics)
+    print("Baseline confusion matrix:", cm)

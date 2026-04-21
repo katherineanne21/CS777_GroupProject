@@ -81,13 +81,23 @@ print('Starting Step 5: Evaluate Model')
 # Transform testing data
 test_features = fitted_pipeline.transform(test_df)
 
-# Get predictions
-predictions = model.transform(test_df)
+# Transform validation data
+val_features = fitted_pipeline.transform(val_df)
 
-# Print Metrics
+# Test predictions
+predictions = model.transform(test_features)
+
+print("Test Metrics:")
 evaluate_predictions(predictions)
 confusion_matrix_counts(predictions)
 evaluate_baseline(test_features)
+
+# Validation predictions
+val_predictions = model.transform(val_features)
+
+print("Validation Metrics:")
+evaluate_predictions(val_predictions)
+confusion_matrix_counts(val_predictions)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time

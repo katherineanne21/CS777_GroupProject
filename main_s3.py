@@ -6,6 +6,7 @@ import time
 from models import create_log_reg_model, split_data, kfold_cross_log_reg, xgboost
 from data_cleaning import feature_eng, cleaning_flight_data
 from evaluation import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
+from data_vis import raw_visualizations
 
 spark = SparkSession.builder \
     .appName("TermProject") \
@@ -40,6 +41,8 @@ print(f'Prepped Data: {elapsed:.4f} seconds')
 # %% Step 2: Data Visualization
 start_time = time.perf_counter()
 print('Starting Step 2: Data Visualization')
+
+raw_visualizations()
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time

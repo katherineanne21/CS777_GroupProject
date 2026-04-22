@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pyspark.sql.functions import col, when
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator, BinaryClassificationEvaluator
 
 
 def evaluate_predictions(predictions):
@@ -37,11 +37,20 @@ def evaluate_predictions(predictions):
         metricName="f1"
     )
     f1 = evaluator_f1.evaluate(predictions)
+    
+    # AUC
+    evaluator_roc = BinaryClassificationEvaluator(
+        labelCol = 'label', 
+        rawPredictionCol = 'probability',
+        metricName = 'areaUnderROC'
+    )
+    auc_roc = evaluator_roc.evaluate(predictions)
 
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
     print(f"F1 Score: {f1:.4f}")
+    print(f"AUC ROC: {auc_roc:.4f}")
 
 
 def confusion_matrix_counts(predictions):

@@ -6,6 +6,7 @@ from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 from xgboost.spark import SparkXGBRegressor
+from pyspark.sql.functions import col
 
 def split_data(df):
     #splitting the data (Train,Test , Validation)
@@ -13,7 +14,26 @@ def split_data(df):
     #then further splits that 30% into 15% validation and 15% test data for model tuning and evaluation
     train_data, temp_data = df.randomSplit([0.7, 0.3], seed=42)
     val_data, test_data = temp_data.randomSplit([0.5, 0.5], seed=42)
-    return train_data, test_data, val_data
+    
+    # Undersample train falses and over sample train trues
+    true_train = train_data.filter(col("label") == True)
+    false_train = train_data.filter(col("label") == False)
+
+    true_balanced = true_train.sample(withReplacement = True, fraction = 3.0, seed = 42)
+    false_balanced = false_train.sample(withReplacement=False, fraction = 0.3, seed = 42)
+
+    balanced_train = true_balanced.unionByName(false_balanced)
+    
+    # Also balance validation set
+    true_val = val_data.filter(col("label") == True)
+    false_val = val_data.filter(col("label") == False)
+
+    true_balanced_val = true_val.sample(withReplacement = True, fraction = 3.0, seed = 42)
+    false_balanced_val = false_val.sample(withReplacement=False, fraction = 0.3, seed = 42)
+
+    balanced_val = true_balanced_val.unionByName(false_balanced_val)
+    
+    return balanced_train, test_data, balanced_val
 
 def create_log_reg_model(train_df):
     

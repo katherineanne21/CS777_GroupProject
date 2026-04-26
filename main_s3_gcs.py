@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from pyspark.sql import SparkSession
+import time
+import sys
+from models import create_log_reg_model, split_data, kfold_cross_log_reg, xgboost
+from data_cleaning_gcs import feature_eng, cleaning_flight_data
+from evaluation import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
+from data_vis import visualizations
+
+spark = SparkSession.builder \
+    .appName("TermProject") \
+    .config("spark.network.timeout", "1000s") \
+    .config("spark.executor.heartbeatInterval", "20s") \
+    .config("spark.task.maxFailures", "8") \
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    .getOrCreate()
+
+sc = spark.sparkContext
+sc.setLogLevel("WARN")
+print('\n' * 5)
+
+# %% Step 1: Prep data
+start_time = time.perf_counter()
+print('Starting Step 1: Prep Data')
+
+# Clean Data
+filename = sys.argv[1]
+gcs_filename = cleaning_flight_data(spark, filename)
+
+# Read Cleaned Data
+df = spark.read.parquet(gcs_filename)
+
+print("Columns in processed dataset:")
+print(df.columns)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'Prepped Data: {elapsed:.4f} seconds')
+
+# %% Step 2: Data Visualization
+start_time = time.perf_counter()
+print('Starting Step 2: Data Visualization')
+
+visualizations()
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'Data Visualization: {elapsed:.4f} seconds')
+
+# %% Step 3: One Hot Encoding/Scaling
+start_time = time.perf_counter()
+print('Starting Step 3: One Hot Encoding and Scaling')
+
+# Split data up
+train_df, test_df, val_df = split_data(df)
+
+# Clean and scale data
+feature_pipeline = feature_eng()
+fitted_pipeline = feature_pipeline.fit(train_df)
+
+# Transform features
+train_features = fitted_pipeline.transform(train_df)
+test_features = fitted_pipeline.transform(test_df)
+val_features = fitted_pipeline.transform(val_df)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'One Hot Encoding and Scaling: {elapsed:.4f} seconds')
+
+# %% Step 4: Basic Logistic Regression Model
+start_time = time.perf_counter()
+print('Starting Step 4: Logistic Regression Model')
+
+# Create model
+model = create_log_reg_model(train_features)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'Logistic Regression Model: {elapsed:.4f} seconds')
+
+# %% Step 5: Evaluate Model
+start_time = time.perf_counter()
+print('Starting Step 5: Evaluate Model')
+
+# Test predictions
+predictions = model.transform(test_features)
+
+print("Test Metrics:")
+evaluate_predictions(predictions)
+confusion_matrix_counts(predictions)
+evaluate_baseline(test_features)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'Evaluate Model: {elapsed:.4f} seconds')
+
+# %% Step 6: K-Fold Cross Validation
+start_time = time.perf_counter()
+print('Starting Step 6: K-Fold Cross Validation')
+
+# K-Fold Model (MINIMAL FIX: use transformed data)
+kfold_cross_model = kfold_cross_log_reg(val_features, train_features)
+
+# Validation predictions
+val_predictions = kfold_cross_model.transform(val_features)
+
+print("K Fold Cross Validation Metrics:")
+evaluate_predictions(val_predictions)
+confusion_matrix_counts(val_predictions)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'K-Fold Cross Validation Model: {elapsed:.4f} seconds')
+
+# %% Step 7: XGBoost
+start_time = time.perf_counter()
+print('Starting Step 7: XGBoost')
+
+# XGBoost Model
+xgboost_model = xgboost(train_features)
+
+# XGBoost predictions (MINIMAL FIX)
+xgboost_predictions = xgboost_model.transform(test_features)
+
+print("XGBoost Metrics:")
+evaluate_predictions(xgboost_predictions)
+confusion_matrix_counts(xgboost_predictions)
+evaluate_baseline(test_features)
+
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+print(f'XGBoost: {elapsed:.4f} seconds')
+
+spark.stop()

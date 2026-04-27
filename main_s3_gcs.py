@@ -114,7 +114,7 @@ print('Starting Step 6: K-Fold Cross Validation')
 kfold_cross_model = kfold_cross_log_reg(val_features, train_features)
 
 # Validation predictions
-val_predictions = kfold_cross_model.transform(val_features)
+val_predictions = kfold_cross_model.transform(test_features)
 
 print("K Fold Cross Validation Metrics:")
 evaluate_predictions(val_predictions)

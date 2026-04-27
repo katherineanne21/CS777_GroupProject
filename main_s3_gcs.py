@@ -137,7 +137,6 @@ xgboost_predictions = xgboost_model.transform(test_features)
 print("XGBoost Metrics:")
 evaluate_predictions(xgboost_predictions)
 confusion_matrix_counts(xgboost_predictions)
-evaluate_baseline(test_features)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time

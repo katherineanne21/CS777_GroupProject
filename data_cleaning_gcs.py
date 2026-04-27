@@ -15,6 +15,7 @@ def cleaning_flight_data(spark, filename):
         .load(filename)
 
     print("Data Loaded Successfully")
+    print(df.columns)
 
     # filtering garbage rows
     df = df.filter(col("YEAR") == 2019)

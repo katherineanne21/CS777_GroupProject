@@ -4,10 +4,10 @@
 from pyspark.sql import SparkSession
 import time
 import sys
-from models import create_log_reg_model, split_data, kfold_cross_log_reg, xgboost
+from models_gcs import create_log_reg_model, split_data, kfold_cross_log_reg, xgboost
 from data_cleaning_gcs import feature_eng, cleaning_flight_data
-from evaluation import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
-from data_vis import visualizations
+from evaluation_gcs import evaluate_predictions, confusion_matrix_counts, evaluate_baseline
+from data_vis_gcs import visualizations
 
 spark = SparkSession.builder \
     .appName("TermProject") \
@@ -15,6 +15,14 @@ spark = SparkSession.builder \
     .config("spark.executor.heartbeatInterval", "20s") \
     .config("spark.task.maxFailures", "8") \
     .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    .config("spark.dynamicAllocation.enabled", "false") \
+    .config("spark.executor.instances", "2") \
+    .config("spark.sql.broadcastTimeout", "3600s") \
+    .config("spark.sql.execution.arrow.maxRecordsPerBatch", "10000") \
+    .config("spark.executor.memory", "4g") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
     .getOrCreate()
 
 sc = spark.sparkContext
@@ -27,10 +35,12 @@ print('Starting Step 1: Prep Data')
 
 # Clean Data
 filename = sys.argv[1]
+print(filename)
 gcs_filename = cleaning_flight_data(spark, filename)
 
 # Read Cleaned Data
 df = spark.read.parquet(gcs_filename)
+df = df.sample(withReplacement = False, fraction = 0.25, seed = 42)
 
 print("Columns in processed dataset:")
 print(df.columns)
@@ -43,7 +53,7 @@ print(f'Prepped Data: {elapsed:.4f} seconds')
 start_time = time.perf_counter()
 print('Starting Step 2: Data Visualization')
 
-visualizations()
+visualizations(gcs_filename)
 
 end_time = time.perf_counter()
 elapsed = end_time - start_time
